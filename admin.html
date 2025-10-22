@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Video Admin Panel</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background: #f4f4f4; }
+        div { padding: 15px; background: #fff; border-radius: 8px; margin-bottom: 15px; }
+        input, button { display: block; width: 300px; padding: 8px; margin-bottom: 10px; }
+        h2 { border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+    <div>
+        <h2>1. Login</h2>
+        <input type="email" id="email" placeholder="Email">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="login()">Login</button>
+        <p id="login-status">Status: Logged Out</p>
+    </div>
+
+    <div>
+        <h2>2. Add New Video (Login First)</h2>
+        <input type="text" id="title" placeholder="Video Title">
+        <input type="text" id="description" placeholder="Video Description">
+        <input type="text" id="video-id" placeholder="YouTube Video ID (e.g., dQw4w9WgXcQ)">
+        <button onclick="addVideo()">Add Video</button>
+        <p id="upload-status"></p>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+    <script>
+        // --- PASTE YOUR FIREBASE CONFIG OBJECT HERE ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyD9keQHZw4KZtQRXk8ZdbB3iVvi-nR29xE",
+            authDomain: "bff-ott.firebaseapp.com",
+            projectId: "bff-ott",
+            storageBucket: "bff-ott.firebasestorage.app",
+            messagingSenderId: "249687889793",
+            appId: "1:249687889793:web:41678e005bcbb161253a80",
+            measurementId: "G-V88ZTR1N5J"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        const loginStatus = document.getElementById('login-status');
+        const uploadStatus = document.getElementById('upload-status');
+
+        // --- Login Function ---
+        function login() {
+            const email = document.getElementById('email').value;
+            const pass = document.getElementById('password').value;
+            auth.signInWithEmailAndPassword(email, pass)
+                .then((userCredential) => {
+                    loginStatus.innerText = 'Status: Logged in as ' + userCredential.user.email;
+                    loginStatus.style.color = 'green';
+                })
+                .catch((error) => {
+                    loginStatus.innerText = 'Error: ' + error.message;
+                    loginStatus.style.color = 'red';
+                });
+        }
+
+        // --- Add Video Function ---
+        function addVideo() {
+            if (!auth.currentUser) {
+                uploadStatus.innerText = 'Error: You must be logged in.';
+                uploadStatus.style.color = 'red';
+                return;
+            }
+
+            const title = document.getElementById('title').value;
+            const desc = document.getElementById('description').value;
+            const videoId = document.getElementById('video-id').value;
+
+            if (!title || !desc || !videoId) {
+                uploadStatus.innerText = 'Error: Please fill all fields.';
+                uploadStatus.style.color = 'red';
+                return;
+            }
+
+            // Automatically create the thumbnail URL
+            const thumbnailUrl = 'https://i.ytimg.com/vi/' + videoId + '/hqdefault.jpg';
+
+            uploadStatus.innerText = 'Adding video to database...';
+            uploadStatus.style.color = 'blue';
+
+            // Add a new document to the 'videos' collection
+            db.collection('videos').add({
+                title: title,
+                description: desc,
+                youtubeVideoId: videoId,
+                thumbnailUrl: thumbnailUrl
+            })
+            .then((docRef) => {
+                uploadStatus.innerText = 'Success! Video added with ID: ' + docRef.id;
+                uploadStatus.style.color = 'green';
+                // Clear the fields
+                document.getElementById('title').value = '';
+                document.getElementById('description').value = '';
+                document.getElementById('video-id').value = '';
+            })
+            .catch((error) => {
+                uploadStatus.innerText = 'Error adding document: ' + error.message;
+                uploadStatus.style.color = 'red';
+            });
+        }
+    </script>
+</body>
+</html>
